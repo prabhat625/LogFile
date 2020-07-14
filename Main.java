@@ -1,5 +1,4 @@
 import java.io.*;
-import java.util.*;
 class Date implements Comparable<Date>{
     private int year;
     private int month;
@@ -11,19 +10,18 @@ class Date implements Comparable<Date>{
     private long minisec;
     Date(String s)
     {
-        String[] components=s.split("[-:T.Z\\s+]");
+        String[] components=s.split("[-:T.,Z\\s+]");
         year=Integer.parseInt(components[0]);
         month=Integer.parseInt(components[1]);
         date=Integer.parseInt(components[2]);
         hour=Integer.parseInt(components[3]);
         min=Integer.parseInt(components[4]);
         sec=Integer.parseInt(components[5]);
-
-        /* 6th component will be empty string */
-        minisec=Long.parseLong(components[7]);
+        minisec=Long.parseLong(components[6]);
     }
     public int compareTo(Date d)
     {
+        /* How to dates will be compare */
         if(this.year!=d.year)
         return this.year-d.year;
         if(this.month!=d.month)
@@ -49,37 +47,45 @@ class Date implements Comparable<Date>{
 
 }
 
-class Solver{
-    static long temp;
+class Solver{ 
     public static void solve(File[] files,Date from, Date end) throws Exception
     {
         
         int k=findIndex(files,from);
         if(k==-1)
         return ;
-        System.out.println(k);
         RandomAccessFile f=new RandomAccessFile(files[k], "r");    
         long l=1;
         long r=f.length();
         long found=-1;
+        /* Binary search inside the desired file to find the first required  */
         while(l<=r)
         {
             long mid=(l+r)/2L;
-            temp=-1;
-            Date dt=give(f,mid,r);
-            if(dt==null)
+            /* offset of the middle line in l-r range inside a file */
+            long  off=give(f,mid,r);
+            if(off==-1)
                 r=mid-1L;
-            else if(dt.compareTo(from)>=0)
-            {r=mid-1L;found=temp;}
             else
-            l=mid+1L;
+            {
+                f.seek(off);
+                Date dt=new Date(f.readLine());
+                if(dt.compareTo(from)>=0)
+                {
+                    r=mid-1L;
+                    found=off;
+                }
+                else
+                l=mid+1L;
+            }
         }
         if(found!=-1){
             boolean res=true;
             PrintWriter pw=new PrintWriter(System.out);
+            /* Start print the require logs consecutively until we reach the 'end' log of query  */
             for(int i=k;i<files.length;i++)
             {
-                f=new RandomAccessFile(files[k], "r");
+                f=new RandomAccessFile(files[i], "r");
                 f.seek(found);
                 String hold;
                 while((hold=f.readLine())!=null)
@@ -94,19 +100,23 @@ class Solver{
                 f.close();
                 if(!res)
                 break;
-                found=1;
+                found=0;
             }
             pw.flush();
             pw.close();
         }
         f.close();
     }
+    
+    /* This method return the last file which have first require entry */
     public static int findIndex(File[] files,Date from) throws Exception
     {
         int l=0;
         int r=files.length-1;
         int found=-1;
         BufferedReader br;
+
+        /* Doing Binary-Search over the list of files using their first entry only*/
         while(l<=r)
         {
             int mid=(l+r)/2;
@@ -121,21 +131,27 @@ class Solver{
             r=mid-1;
             br.close();
         }
+
         return found;
     }
-    public static Date give(RandomAccessFile f,long pos,long end) throws Exception
+    
+    /* return the offset of the middle line asked by binary search inside a file*/
+    public static long give(RandomAccessFile f,long pos,long end) throws Exception
     {
         f.seek(pos);
         f.readLine();
-        temp=f.getFilePointer();
+        long temp=f.getFilePointer();
         if(temp>=end)
-        return null;
-        return new Date(f.readLine());
+        return -1;
+        return temp;
     }
+    
     public static long time()
     {
         return System.currentTimeMillis();
     }
+    
+    /* Use for Debugging :- look girst p entry from each file */
     public static void see(File[] files,int p) throws Exception
     {
         for(int i=0;i<files.length;i++)
@@ -157,18 +173,24 @@ public class Main {
         if(args.length==0)
         return;
         File f=new File(args[0]);
-        System.out.println(f.isDirectory()+" "+f.length());
+
+        if(!f.isDirectory())
+        {
+            System.out.println("Specified path is not a Directory ");
+            return;
+        }
+        /* Storing all list of files */
         String[] list=new File(args[0]).list();
         File[] files=new File[list.length];
         for(int i=0;i<list.length;i++)
         files[i]=new File(args[0]+"\\"+list[i]);
+
+        /*Converting time from ISO 8601 to our Date object */
         Date start=new Date(args[1]);
         Date end=new Date(args[2]);
-         Solver.solve(files,start,end);
+
+        /*  Start solve the proble, */
+       Solver.solve(files,start,end);
+       
     }
 }
-
-/*
-2020-07-13T16:53:56Z.1504
-2020-07-13T16:53:58Z.1502
-*/
