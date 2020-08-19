@@ -6,7 +6,7 @@ class Date implements Comparable<Date>{
     private int hour;
     private int min;
     private int sec;
-    /* Assuming mini second can be very long*/
+    /* Assuming mini second can be very long So better to be store in a 64-bit Integer*/
     private long minisec;
     Date(String s)
     {
